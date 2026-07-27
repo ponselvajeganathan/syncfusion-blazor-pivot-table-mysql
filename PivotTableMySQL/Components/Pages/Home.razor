@@ -1,0 +1,54 @@
+﻿@page "/"
+@using Syncfusion.Blazor.Data
+@using Syncfusion.Blazor.PivotView
+
+<SfPivotView TValue="Order" Width="1000" Height="300" ShowFieldList="true">
+    <PivotViewDataSourceSettings TValue="Order" ExpandAll=false EnableSorting=true>
+    <SfDataManager Url="http://localhost:5145/api/Order" InsertUrl="http://localhost:5145/api/Order/Insert" UpdateUrl="http://localhost:5145/api/Order/Update" RemoveUrl="http://localhost:5145/api/Order/Delete" Adaptor="Adaptors.UrlAdaptor"></SfDataManager>
+        <PivotViewColumns>
+            <PivotViewColumn Name="EmployeeID"></PivotViewColumn>
+        </PivotViewColumns>
+        <PivotViewRows>
+            <PivotViewRow Name="CustomerName"></PivotViewRow>
+        </PivotViewRows>
+        <PivotViewValues>
+            <PivotViewValue Name="Freight" Caption="Freight"></PivotViewValue>
+        </PivotViewValues>
+    </PivotViewDataSourceSettings>
+    <PivotViewGridSettings ColumnWidth="120"></PivotViewGridSettings>
+    <PivotViewEvents TValue="Order" BeginDrillThrough="beginDrillThrough"></PivotViewEvents>
+    <PivotViewCellEditSettings AllowEditing=true AllowAdding=true AllowDeleting=true Mode=Syncfusion.Blazor.PivotView.EditMode.Normal></PivotViewCellEditSettings>
+</SfPivotView>
+
+@code{
+    private void beginDrillThrough(BeginDrillThroughEventArgs args)
+    {
+        // Configure beginDrillThrough event to set the primary key for CRUD operations
+        // Iterate through all columns in the drill-through Order
+        for (int i = 0; i < args.GridObj.Columns.Count; i++)
+        {
+            // Check if the current column is the primary key column
+            if (args.GridObj.Columns[i].Field == "OrderID")
+            {
+                // Mark this column as the primary key
+                // This tells DataManager to use this column's value to uniquely identify records
+                args.GridObj.Columns[i].IsPrimaryKey = true;
+            }
+            else
+            {
+                 args.GridObj.Columns[i].Visible = true; // Ensure other columns are visible in the drill-through grid
+            }
+        }
+    }
+    SfPivotView<Order> pivot { get; set; }
+
+    public List<Order> Orders { get; set; }
+    public class Order
+    {
+        public int OrderID { get; set; }
+        public string CustomerName { get; set; }
+        public int EmployeeID { get; set; }
+        public decimal Freight { get; set; }
+        public string ShipCity { get; set; }
+    }
+}
