@@ -374,6 +374,4 @@ If CSS or scripts fail to load, check the browser developer tools (F12) for 404 
 
 ## Full Documentation
 
-For detailed, step-by-step directions including complete code examples, controller implementations, and advanced configurations, refer to the official Syncfusion Blazor Pivot Table documentation. *(Documentation link will be added once published.)*
-
 For detailed, step-by-step instructions including complete code examples, controller implementations, connection string configuration, CRUD operations, and advanced MySQL integration scenarios, refer to the [Pivot Table documentation for MySQL](https://blazor.syncfusion.com/documentation/pivot-table/connecting-to-data-source/mysql).
