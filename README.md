@@ -93,11 +93,14 @@ INSERT INTO orders (customername, employeeid, shipcity, freight) VALUES
 
 ### 5. Configure the Connection String
 
-The connection string is defined in `Controllers/OrderController.cs`:
+The connection string is configured in `appsettings.json` and read by the controller from configuration:
 
-```csharp
-string ConnectionString =
-    "Server=localhost;Port=3306;Database=Orders;Uid=root;Pwd=password@123;";
+```json
+{
+  "ConnectionStrings": {
+    "MySQL": "Server=localhost;Port=3306;Database=Orders;Uid=root;Pwd=password@123;"
+  }
+}
 ```
 
 Update the following values to match your local MySQL installation:
@@ -160,11 +163,14 @@ mysql -h localhost -P 3306 -u root -p
 
 ### Connection String Setup
 
-Update the `ConnectionString` field at the top of `OrderController.cs` to match your MySQL credentials:
+Update the `MySQL` entry in `appsettings.json` to match your MySQL credentials:
 
-```csharp
-string ConnectionString =
-    "Server=localhost;Port=3306;Database=Orders;Uid=root;Pwd=<your-password>;";
+```json
+{
+  "ConnectionStrings": {
+    "MySQL": "Server=localhost;Port=3306;Database=Orders;Uid=root;Pwd=<your-password>;"
+  }
+}
 ```
 
 ### Dependency Injection Registration
@@ -253,10 +259,6 @@ The `SfDataManager` configuration in `Components/Pages/Home.razor` binds the Piv
 5. **Open the application**
 
    Navigate to the local URL displayed in the terminal (typically `https://localhost:7169` or `http://localhost:5145`).
-
-6. **Access the Web API (Optional)**
-
-   Send a POST request to `http://localhost:5145/api/Order` to verify the read endpoint returns order data from MySQL.
 
 ## CRUD Operations
 
@@ -373,3 +375,5 @@ If CSS or scripts fail to load, check the browser developer tools (F12) for 404 
 ## Full Documentation
 
 For detailed, step-by-step directions including complete code examples, controller implementations, and advanced configurations, refer to the official Syncfusion Blazor Pivot Table documentation. *(Documentation link will be added once published.)*
+
+For detailed, step-by-step instructions including complete code examples, controller implementations, connection string configuration, CRUD operations, and advanced MySQL integration scenarios, refer to the [Pivot Table documentation for MySQL](https://blazor.syncfusion.com/documentation/pivot-table/connecting-to-data-source/mysql).

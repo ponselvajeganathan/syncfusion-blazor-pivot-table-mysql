@@ -1,144 +1,225 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Data;
+using System.Text.Json.Serialization;
+using Microsoft.AspNetCore.Mvc;
+using MySql.Data.MySqlClient;
 using Syncfusion.Blazor.Data;
 using Syncfusion.Blazor;
-using MySql.Data.MySqlClient;
-using System.Data;
-using System.ComponentModel.DataAnnotations;
-using Newtonsoft.Json;
-// using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace PivotTableMySQL.Controllers
 {
     [ApiController]
+    [Route("api/[controller]")]
     public class OrderController : ControllerBase
     {
-        string ConnectionString =
-            "Server=localhost;Port=3306;Database=Orders;Uid=root;Pwd=password@123;";
+        private readonly string ConnectionString;
 
-        [HttpPost]
-        [Route("api/[controller]")]
-        public object Post([FromBody] DataManagerRequest DataManagerRequest)
+        public OrderController(IConfiguration configuration)
         {
-            IEnumerable<Order> DataSource = GetOrderData();
-            int count = DataSource.Cast<Order>().Count();
-
-            return new { result = DataSource, count = count };
-        }
-
-        [Route("api/[controller]")]
-        public List<Order> GetOrderData()
-        {
-            string QueryStr = "SELECT * FROM orders ORDER BY orderid";
-
-            using MySqlConnection sqlConnection = new(ConnectionString);
-            sqlConnection.Open();
-
-            using MySqlCommand SqlCommand = new(QueryStr, sqlConnection);
-            using MySqlDataAdapter DataAdapter = new(SqlCommand);
-
-            DataTable DataTable = new();
-            DataAdapter.Fill(DataTable);
-
-            var DataSource = (from DataRow Data in DataTable.Rows
-                              select new Order()
-                              {
-                                  OrderID = Convert.ToInt32(Data["orderid"]),
-                                  CustomerName = Data["customername"].ToString(),
-                                  EmployeeID = Convert.ToInt32(Data["employeeid"]),
-                                  ShipCity = Data["shipcity"].ToString(),
-                                  Freight = Convert.ToDecimal(Data["freight"])
-                              }).ToList();
-
-            return DataSource;
+            ConnectionString = configuration.GetConnectionString("MySQL") ?? throw new InvalidOperationException("The MySQL connection string is not configured.");
         }
 
         [HttpPost]
-        [Route("api/Order/Insert")]
-        public void Insert([FromBody] CRUDModel<Order> Value)
+        public object Post([FromBody] DataManagerRequest request)
         {
-            string Query =
-                $"INSERT INTO orders " +
-                $"(customername, freight, shipcity, employeeid) " +
-                $"VALUES " +
-                $"('{Value.Value.CustomerName}', " +
-                $"{Value.Value.Freight}, " +
-                $"'{Value.Value.ShipCity}', " +
-                $"{Value.Value.EmployeeID})";
+            _ = request;
 
-            using MySqlConnection Connection = new(ConnectionString);
-            Connection.Open();
+            List<Order> dataSource = GetOrderData();
 
-            using MySqlCommand Command = new(Query, Connection);
-            Command.ExecuteNonQuery();
+            return new
+            {
+                result = dataSource,
+                count = dataSource.Count
+            };
         }
 
-        [HttpPost]
-        [Route("api/Order/Update")]
-        public void Update([FromBody] CRUDModel<Order> Value)
+        private List<Order> GetOrderData()
         {
-            string Query =
-                $"UPDATE orders SET " +
-                $"customername='{Value.Value.CustomerName}', " +
-                $"freight={Value.Value.Freight}, " +
-                $"employeeid={Value.Value.EmployeeID}, " +
-                $"shipcity='{Value.Value.ShipCity}' " +
-                $"WHERE orderid={Value.Value.OrderID}";
+            const string query =
+                @"SELECT orderid,
+                         customername,
+                         employeeid,
+                         shipcity,
+                         freight
+                  FROM orders
+                  ORDER BY orderid";
 
-            using MySqlConnection Connection = new(ConnectionString);
-            Connection.Open();
+            using MySqlConnection connection = new(ConnectionString);
+            connection.Open();
 
-            using MySqlCommand Command = new(Query, Connection);
-            Command.ExecuteNonQuery();
+            using MySqlCommand command = new(query, connection);
+            using MySqlDataAdapter adapter = new(command);
+
+            DataTable dataTable = new();
+            adapter.Fill(dataTable);
+
+            return (from DataRow row in dataTable.Rows
+                    select new Order
+                    {
+                        OrderID = Convert.ToInt32(row["orderid"]),
+                        CustomerName = row["customername"].ToString(),
+                        EmployeeID = Convert.ToInt32(row["employeeid"]),
+                        ShipCity = row.IsNull("shipcity")
+                            ? null
+                            : row["shipcity"].ToString(),
+                        Freight = row.IsNull("freight")
+                            ? null
+                            : Convert.ToDecimal(row["freight"])
+                    }).ToList();
         }
 
-        [HttpPost]
-        [Route("api/Order/Delete")]
-        public void Delete([FromBody] CRUDModel<Order> Value)
+        [HttpPost("Insert")]
+        public IActionResult Insert([FromBody] CRUDModel<Order> value)
         {
-            string Query =
-                $"DELETE FROM orders WHERE orderid={Value.Key}";
+            if (value.Value is not Order order
+                || string.IsNullOrWhiteSpace(order.CustomerName)
+                || !order.EmployeeID.HasValue)
+            {
+                return BadRequest(
+                    "CustomerName and EmployeeID are required.");
+            }
 
-            using MySqlConnection Connection = new(ConnectionString);
-            Connection.Open();
+            const string query =
+                @"INSERT INTO orders
+                    (customername, freight, shipcity, employeeid)
+                  VALUES
+                    (@customername, @freight, @shipcity, @employeeid);";
 
-            using MySqlCommand Command = new(Query, Connection);
-            Command.ExecuteNonQuery();
+            using MySqlConnection connection = new(ConnectionString);
+            connection.Open();
+
+            using MySqlCommand command = new(query, connection);
+
+            command.Parameters.AddWithValue("@customername",
+                order.CustomerName);
+
+            command.Parameters.AddWithValue("@freight",
+                order.Freight.HasValue
+                    ? order.Freight.Value
+                    : DBNull.Value);
+
+            command.Parameters.AddWithValue("@shipcity",
+                order.ShipCity ?? (object)DBNull.Value);
+
+            command.Parameters.AddWithValue("@employeeid",
+                order.EmployeeID.Value);
+
+            command.ExecuteNonQuery();
+
+            order.OrderID = Convert.ToInt32(command.LastInsertedId);
+
+            return Ok(order);
+        }
+
+        [HttpPost("Update")]
+        public IActionResult Update([FromBody] CRUDModel<Order> value)
+        {
+            if (value.Value is not Order order
+                || !order.OrderID.HasValue
+                || string.IsNullOrWhiteSpace(order.CustomerName)
+                || !order.EmployeeID.HasValue)
+            {
+                return BadRequest(
+                    "OrderID, CustomerName and EmployeeID are required.");
+            }
+
+            const string query =
+                @"UPDATE orders
+                  SET customername = @customername,
+                      freight      = @freight,
+                      employeeid   = @employeeid,
+                      shipcity     = @shipcity
+                  WHERE orderid    = @orderid";
+
+            using MySqlConnection connection = new(ConnectionString);
+            connection.Open();
+
+            using MySqlCommand command = new(query, connection);
+
+            command.Parameters.AddWithValue("@customername",
+                order.CustomerName);
+
+            command.Parameters.AddWithValue("@freight",
+                order.Freight.HasValue
+                    ? order.Freight.Value
+                    : DBNull.Value);
+
+            command.Parameters.AddWithValue("@employeeid",
+                order.EmployeeID.Value);
+
+            command.Parameters.AddWithValue("@shipcity",
+                order.ShipCity ?? (object)DBNull.Value);
+
+            command.Parameters.AddWithValue("@orderid",
+                order.OrderID.Value);
+
+            return command.ExecuteNonQuery() == 0
+                ? NotFound()
+                : Ok(order);
+        }
+
+        [HttpPost("Delete")]
+        public IActionResult Delete([FromBody] CRUDModel<Order> value)
+        {
+            if (!int.TryParse(value.Key?.ToString(), out int orderId))
+            {
+                return BadRequest("A numeric order key is required.");
+            }
+
+            const string query =
+                @"DELETE FROM orders
+                  WHERE orderid = @orderid";
+
+            using MySqlConnection connection = new(ConnectionString);
+            connection.Open();
+
+            using MySqlCommand command = new(query, connection);
+
+            command.Parameters.AddWithValue("@orderid", orderId);
+
+            return command.ExecuteNonQuery() == 0
+                ? NotFound()
+                : NoContent();
         }
 
         public class Order
         {
             [Key]
             public int? OrderID { get; set; }
+
             public string? CustomerName { get; set; }
+
             public int? EmployeeID { get; set; }
+
             public decimal? Freight { get; set; }
+
             public string? ShipCity { get; set; }
         }
 
         public class CRUDModel<T> where T : class
         {
-            [JsonProperty("action")]
+            [JsonPropertyName("action")]
             public string? Action { get; set; }
 
-            [JsonProperty("keyColumn")]
+            [JsonPropertyName("keyColumn")]
             public string? KeyColumn { get; set; }
 
-            [JsonProperty("key")]
+            [JsonPropertyName("key")]
             public object? Key { get; set; }
 
-            [JsonProperty("value")]
+            [JsonPropertyName("value")]
             public T? Value { get; set; }
 
-            [JsonProperty("added")]
+            [JsonPropertyName("added")]
             public List<T>? Added { get; set; }
 
-            [JsonProperty("changed")]
+            [JsonPropertyName("changed")]
             public List<T>? Changed { get; set; }
 
-            [JsonProperty("deleted")]
+            [JsonPropertyName("deleted")]
             public List<T>? Deleted { get; set; }
 
-            [JsonProperty("params")]
+            [JsonPropertyName("params")]
             public IDictionary<string, object>? Params { get; set; }
         }
     }
