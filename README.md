@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-This repository demonstrates a production-ready pattern for binding a **MySQL** database to the **Syncfusion Blazor Pivot Table** using the **URL Adaptor**. The sample application fetches order records stored in a MySQL table, exposes them through a RESTful ASP.NET Core Web API controller, and binds the result to the Pivot Table on the client through `SfDataManager` configured with `Adaptors.UrlAdaptor`.
+This repository demonstrates a production-ready pattern for binding a **MySQL** database to the **Syncfusion [Blazor Pivot Table](https://www.syncfusion.com/blazor-components/blazor-pivot-table)** using the **URL Adaptor**. The sample application fetches order records stored in a MySQL table, exposes them through a RESTful ASP.NET Core Web API controller, and binds the result to the Pivot Table on the client through `SfDataManager` configured with `Adaptors.UrlAdaptor`.
 
 The implementation shows a clean remote data binding architecture where the Pivot Table never talks to MySQL directly. Instead, every data operation (read, insert, update, delete) flows through HTTP endpoints handled by the `OrderController`, which in turn executes queries against MySQL using the **MySql.Data** (Oracle's MySqlClient) ADO.NET data provider.
 
@@ -375,3 +375,12 @@ If CSS or scripts fail to load, check the browser developer tools (F12) for 404 
 ## Full Documentation
 
 For detailed, step-by-step instructions including complete code examples, controller implementations, connection string configuration, CRUD operations, and advanced MySQL integration scenarios, refer to the [Pivot Table documentation for MySQL](https://blazor.syncfusion.com/documentation/pivot-table/connecting-to-data-source/mysql).
+
+## Support and Feedback
+
+- For general product questions, visit the [Syncfusion Community Forum](https://www.syncfusion.com/forums) or [Syncfusion Support](https://www.syncfusion.com/support).
+- To report an issue specific to this sample, open a GitHub issue in this repository.
+
+## License
+
+This is a Syncfusion sample project provided to demonstrate product usage. Review the [Syncfusion license terms](https://www.syncfusion.com/sales/pricing?category=ui-components) before using Syncfusion components in your own applications.
